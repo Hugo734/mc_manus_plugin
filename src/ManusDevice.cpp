@@ -1,6 +1,11 @@
 #include "ManusDevice.h"
 
 #include <mc_rtc/gui/Label.h>
+#include <mc_rtc/gui/Table.h>
+#include <fmt/core.h>
+#include <string>
+#include <tuple>
+#include <vector>
 
 namespace mc_rbdyn
 {
@@ -89,32 +94,68 @@ const ManusDevice::Data & ManusDevice::data() const
 
 void ManusDevice::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
-  gui.addElement({"ManusPlugin", name()}, mc_rtc::gui::Label("Side", [this]() { return data().side; }),
-                 mc_rtc::gui::Label("Raw nodes", [this]() { return std::to_string(data().raw_nodes.size()); }),
-                 mc_rtc::gui::Label("Ergonomics", [this]() { return std::to_string(data().ergonomics.size()); }));
-  gui.addElement({"ManusPlugin", name(), "Data"},
-                 mc_rtc::gui::Table("Raw Nodes", {"Node ID", "Pose"},
-                                    [this]()
-                                    {
-                                      const auto & d = data();
-                                      std::vector<std::tuple<int, std::string, std::string>> table;
-                                      for(const auto & node : d.raw_nodes)
-                                      {
-                                        table.push_back({node.node_id, node.chain_type, fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}",
-                                                                 node.pose.translation().x(),
-                                                                 node.pose.translation().y(),
-                                                                 node.pose.translation().z(),
-                                                                 node.pose.rotation().eulerAngles(0, 1, 2).x(),
-                                                                 node.pose.rotation().eulerAngles(0, 1, 2).y(),
-                                                                 node.pose.rotation().eulerAngles(0, 1, 2).z())});
-                                      }
-                                      return table;
-                                    }));
-                                  }
+  // ── Header info
+  gui.addElement(
+    {"ManusPlugin", name()},
+    mc_rtc::gui::Label("Side",       [this]() { return data().side; }),
+    mc_rtc::gui::Label("Raw nodes",  [this]() { return std::to_string(data().raw_nodes.size()); }),
+    mc_rtc::gui::Label("Ergonomics", [this]() { return std::to_string(data().ergonomics.size()); })
+  );
 
+  // ── Raw Nodes table (3 columnas: Node ID, Chain, Pose)
+  gui.addElement(
+    {"ManusPlugin", name(), "Data"},
+    mc_rtc::gui::Table(
+      "Raw Nodes",
+      {"Node ID", "Chain", "Pose"},
+      [this]()
+      {
+        const auto & d = data();
+        std::vector<std::tuple<int, std::string, std::string>> table;
+        table.reserve(d.raw_nodes.size());
+        for(const auto & node : d.raw_nodes)
+        {
+          table.emplace_back(
+            node.node_id,                          // Node ID (int)
+            node.chain_type,                       // Chain (string)
+            fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}",
+                        node.pose.translation().x(),
+                        node.pose.translation().y(),
+                        node.pose.translation().z(),
+                        node.pose.rotation().eulerAngles(0, 1, 2).x(),
+                        node.pose.rotation().eulerAngles(0, 1, 2).y(),
+                        node.pose.rotation().eulerAngles(0, 1, 2).z()) // Pose (string)
+          );
+        }
+        return table;
+      }
+    )
+  );
 
-
-
+  // ── Ergonomics table (2 columnas: Type(string), Value(double))
+  gui.addElement(
+    {"ManusPlugin", name(), "DataErgonomics"},
+    mc_rtc::gui::Table(
+      "Ergonomics",
+      {"Type", "Value"},
+      [this]()
+      {
+        const auto & d = data();
+        std::vector<std::tuple<std::string, std::string>> table;
+        table.reserve(d.ergonomics.size());
+        for(const auto & node : d.ergonomics)
+        {
+          table.emplace_back(
+            
+            node.type,
+            fmt::format("{:.2f}", node.value)
+          );
+        }
+        return table;
+      }
+    )
+  );
+}
 
 void ManusDevice::gloveCallback(const manus_ros2_msgs::msg::ManusGlove::SharedPtr msg)
 {
