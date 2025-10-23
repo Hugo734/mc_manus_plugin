@@ -90,7 +90,7 @@ const ManusDevice::Data & ManusDevice::data() const
 void ManusDevice::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
   gui.addElement({"ManusPlugin", name()}, mc_rtc::gui::Label("Side", [this]() { return data().side; }),
-                 mc_rtc::gui::Label("Raw nodes", [this]() { return std::to_string(data().rawNodes.size()); }),
+                 mc_rtc::gui::Label("Raw nodes", [this]() { return std::to_string(data().raw_nodes.size()); }),
                  mc_rtc::gui::Label("Ergonomics", [this]() { return std::to_string(data().ergonomics.size()); }));
   gui.addElement({"ManusPlugin", name(), "Data"},
                  mc_rtc::gui::Table("Raw Nodes", {"Node ID", "Pose"},
@@ -98,9 +98,9 @@ void ManusDevice::addToGUI(mc_rtc::gui::StateBuilder & gui)
                                     {
                                       const auto & d = data();
                                       std::vector<std::tuple<int, std::string, std::string>> table;
-                                      for(const auto & node : d.rawNodes)
+                                      for(const auto & node : d.raw_nodes)
                                       {
-                                        table.push_back({node.nodeId, node.chainType, fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}",
+                                        table.push_back({node.node_id, node.chain_type, fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}",
                                                                  node.pose.translation().x(),
                                                                  node.pose.translation().y(),
                                                                  node.pose.translation().z(),
@@ -110,23 +110,27 @@ void ManusDevice::addToGUI(mc_rtc::gui::StateBuilder & gui)
                                       }
                                       return table;
                                     }));
-}
+                                  }
+
+
+
+
 
 void ManusDevice::gloveCallback(const manus_ros2_msgs::msg::ManusGlove::SharedPtr msg)
 {
   Data sample;
-  sample.gloveId = msg->glove_id;
+  sample.glove_id = msg->glove_id;
   sample.side = msg->side;
-  sample.rawNodes.reserve(msg->raw_nodes.size());
+  sample.raw_node_count = msg->raw_nodes.size();
   for(const auto & node : msg->raw_nodes)
   {
     RawNode dst;
-    dst.nodeId = node.node_id;
-    dst.parentNodeId = node.parent_node_id;
-    dst.jointType = node.joint_type;
-    dst.chainType = node.chain_type;
+    dst.node_id = node.node_id;
+    dst.parent_node_id = node.parent_node_id;
+    dst.joint_type = node.joint_type;
+    dst.chain_type = node.chain_type;
     dst.pose = toTransform(node.pose);
-    sample.rawNodes.push_back(std::move(dst));
+    sample.raw_nodes.push_back(std::move(dst));
   }
   sample.ergonomics.reserve(msg->ergonomics.size());
   for(const auto & ergo : msg->ergonomics)
@@ -135,21 +139,19 @@ void ManusDevice::gloveCallback(const manus_ros2_msgs::msg::ManusGlove::SharedPt
   }
   if(msg->raw_sensor_count > 0)
   {
-    sample.rawSensors.reserve(msg->raw_sensor.size());
+    sample.raw_sensor_count = msg->raw_sensor.size();
     for(size_t idx = 0; idx < msg->raw_sensor.size(); ++idx)
     {
       RawSensor rs;
       rs.sensorId = static_cast<int>(idx);
       rs.pose = toTransform(msg->raw_sensor[idx]);
-      sample.rawSensors.push_back(std::move(rs));
+      sample.raw_sensors.push_back(std::move(rs));
     }
     sample.wristOrientation = Eigen::Quaterniond(msg->raw_sensor_orientation.w, msg->raw_sensor_orientation.x,
                                                  msg->raw_sensor_orientation.y, msg->raw_sensor_orientation.z);
   }
-  sample.stamp = std::chrono::steady_clock::now();
-
+  sample.stamp = std::chrono::steady_clock::now();  
   std::lock_guard<std::mutex> lock(dataMutex_);
   data_ = std::move(sample);
-}
-
+}    
 } // namespace mc_rbdyn

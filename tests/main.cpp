@@ -49,7 +49,7 @@ int main(int argc, char * argv[])
     {
       auto & manus_glove = gc.controller().robot().device<mc_rbdyn::ManusDevice>("left_hand");
       const auto & manus_info = manus_glove.data();
-      std::cout << manus_info.gloveId << std::endl;
+      std::cout << manus_info.glove_id << std::endl;
     }
     
   };
