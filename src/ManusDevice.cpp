@@ -1,6 +1,7 @@
 #include "ManusDevice.h"
 
 #include <mc_rtc/gui/Label.h>
+#include <string>
 
 namespace mc_rbdyn
 {
@@ -115,16 +116,18 @@ void ManusDevice::addToGUI(mc_rtc::gui::StateBuilder & gui)
                                     }));
 
   gui.addElement({"ManusPlugin", name(), "DataErgonomics"},
-                 mc_rtc::gui::Table("Ergonomics", {"Finger", "Flange", "Value"},
+                 mc_rtc::gui::Table("Ergonomics", {"Ergonomics Type", "Value"},
                                     [this]()
                                     {
                                       const auto & d = data();
-                                      std::vector<std::tuple<std::string, std::string, std::string>> table;
-                                      table.reserve(d.ergonomics.size());
+                                      //std::vector<std::tuple<std::string, std::string, std::string>> table;
+                                      std::vector<std::tuple<std::string, std::string>> table;
+                                      //table.reserve(d.ergonomics.size());
                                       for(const auto & node : d.fingers)
                                       {
                                         for(const auto & f : node.second)
-                                          table.emplace_back(node.first, f.type, fmt::format("{:.2f}", f.value));
+                                          //table.emplace_back(node.first, f.type, fmt::format("{:.2f}", f.value));
+                                          table.emplace_back(f.type, fmt::format("{:.2f}", f.value));
                                       }
                                       return table;
                                     }));
