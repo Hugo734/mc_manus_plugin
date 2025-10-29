@@ -67,7 +67,11 @@ struct ManusDevice : public Device
   DevicePtr clone() const override;
 
   const ManusDevice::Data & data() const;
-
+  const std::unordered_map<std::string, std::vector<Ergonomics>> getFingers() const
+  {
+    std::lock_guard<std::mutex> lock(dataMutex_);
+    return data_.fingers;
+  }
   void addToGUI(mc_rtc::gui::StateBuilder & gui);
 
 private:

@@ -93,21 +93,23 @@ void ManusDevice::addToGUI(mc_rtc::gui::StateBuilder & gui)
                  mc_rtc::gui::Label("Raw nodes", [this]() { return std::to_string(data().rawNodes.size()); }),
                  mc_rtc::gui::Label("Ergonomics", [this]() { return std::to_string(data().ergonomics.size()); }));
   gui.addElement({"ManusPlugin", name(), "Data"},
-                 mc_rtc::gui::Table("Raw Nodes", {"Node ID", "Pose"},
+                 mc_rtc::gui::Table("Raw Nodes", {"Node ID", "Joint Type", "Chain Type", "Pose"},
                                     [this]()
                                     {
                                       const auto & d = data();
-                                      std::vector<std::tuple<int, std::string, std::string>> table;
+                                      std::vector<std::tuple<int, std::string, std::string, std::string>> table;
+                                      table.reserve(d.rawNodes.size());
                                       for(const auto & node : d.rawNodes)
                                       {
-                                        table.push_back(
-                                            {node.nodeId, node.chainType,
-                                             fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}",
-                                                         node.pose.translation().x(), node.pose.translation().y(),
-                                                         node.pose.translation().z(),
-                                                         node.pose.rotation().eulerAngles(0, 1, 2).x(),
-                                                         node.pose.rotation().eulerAngles(0, 1, 2).y(),
-                                                         node.pose.rotation().eulerAngles(0, 1, 2).z())});
+                                        table.emplace_back(node.nodeId, 
+                                                         node.chainType, 
+                                                         node.jointType,
+                                                         fmt::format("[{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}]",
+                                                                   node.pose.translation().x(), node.pose.translation().y(),
+                                                                   node.pose.translation().z(),
+                                                                   node.pose.rotation().eulerAngles(0, 1, 2).x(),
+                                                                   node.pose.rotation().eulerAngles(0, 1, 2).y(),
+                                                                   node.pose.rotation().eulerAngles(0, 1, 2).z()));
                                       }
                                       return table;
                                     }));
@@ -145,7 +147,8 @@ void ManusDevice::gloveCallback(const manus_ros2_msgs::msg::ManusGlove::SharedPt
     dst.pose = toTransform(node.pose);
     sample.rawNodes.push_back(std::move(dst));
     sample.fingers[node.chain_type].reserve(10);
-
+    
+    //TODO: Refined mapping between nodes and ergonomics
     if(i < msg->ergonomics.size())
     {
       const auto & ergo = msg->ergonomics[i];
@@ -165,7 +168,7 @@ void ManusDevice::gloveCallback(const manus_ros2_msgs::msg::ManusGlove::SharedPt
       RawSensor rs;
       rs.sensorId = static_cast<int>(idx);
       rs.pose = toTransform(msg->raw_sensor[idx]);
-      sample.rawSensors.push_back(std::move(rs));
+      sample.rawSensors.push_back((rs));
     }
     sample.wristOrientation = Eigen::Quaterniond(msg->raw_sensor_orientation.w, msg->raw_sensor_orientation.x,
                                                  msg->raw_sensor_orientation.y, msg->raw_sensor_orientation.z);
@@ -173,7 +176,7 @@ void ManusDevice::gloveCallback(const manus_ros2_msgs::msg::ManusGlove::SharedPt
   sample.stamp = std::chrono::steady_clock::now();
 
   std::lock_guard<std::mutex> lock(dataMutex_);
-  data_ = std::move(sample);
+  data_ = (sample);
 }
 
 } // namespace mc_rbdyn
