@@ -103,8 +103,8 @@ void ManusDevice::addToGUI(mc_rtc::gui::StateBuilder & gui)
                                       for(const auto & node : d.rawNodes)
                                       {
                                         table.emplace_back(node.nodeId, 
-                                                         node.chainType, 
                                                          node.jointType,
+                                                         node.chainType, 
                                                          fmt::format("[{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}]",
                                                                    node.pose.translation().x(), node.pose.translation().y(),
                                                                    node.pose.translation().z(),
